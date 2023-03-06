@@ -1,4 +1,4 @@
-PATCH  http://localhost:9000/products/1 HTTP/1.1
+PATCH  http://localhost:9000/products/2 HTTP/1.1
 content-type: application/json
 
 {

@@ -1,13 +1,11 @@
 var express = require('express');
 var router = express.Router();
 
-let data = [
-  { id: 1, name: 'iPhone 14 Pro Max', price: 1500 },
-  { id: 2, name: 'iPhone 13 Pro Max', price: 1200 },
-  { id: 10, name: 'iPhone 12 Pro Max', price: 1000 },
-  { id: 4, name: 'iPhone 11 Pro Max', price: 800 },
-  { id: 9, name: 'iPhone X', price: 500 },
-];
+let data = require('../data/products.json');
+
+const fileName = './data/products.json';
+
+const {write} = require('../helpers/FileHelper');
 // Methods: POST / PATCH / GET / DELETE / PUT
 
 // Get all
@@ -30,7 +28,7 @@ router.post('/', function (req, res, next) {
   newItem.id = max + 1;
 
   data.push(newItem);
-
+  write(fileName,data);
   res.send({ ok: true, message: 'Created' });
 });
 
