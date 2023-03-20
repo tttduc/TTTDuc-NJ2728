@@ -3,5 +3,6 @@ content-type: application/json
 
 {
   "name": "Samsung Fold 3",
-  "price": 1300
+  "price": 10,
+  "description" :"ahehe"
 }

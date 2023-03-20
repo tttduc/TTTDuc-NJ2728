@@ -2,6 +2,6 @@ POST http://localhost:9000/categories HTTP/1.1
 content-type: application/json
 
 { 
-   "name": "Fashion", 
-   "description": "Thời trang" 
+   "name": "huhu", 
+   "description": "Thanhthan" 
 }

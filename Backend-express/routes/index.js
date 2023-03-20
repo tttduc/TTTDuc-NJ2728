@@ -1,9 +1,8 @@
-var express = require('express');
-var router = express.Router();
+const categories = require('./categories');
+const customers = require('./customers');
+const employees = require('./employees');
+const orders = require('./orders');
+const product = require('./products');
+const suppliers = require('./suppliers');
 
-/* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
-});
-
-module.exports = router;
+module.exports = {categories, customers, products, suppliers, orders, employees};

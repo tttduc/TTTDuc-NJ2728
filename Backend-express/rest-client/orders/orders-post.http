@@ -1,7 +1,7 @@
-POST http://localhost:7032/orders HTTP/1.1
+POST http://localhost:9000/orders HTTP/1.1
 content-type: application/json
 
 {
-  "name": "Samsung Fold 3",
-  "price": 1300
+  "status": "Samsung Fold 3",
+  "description": "achuma"
 }
