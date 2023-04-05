@@ -4,6 +4,15 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require('cors');
+require('dotenv').config();
+const passport = require('passport');
+
+
+//MONGOOSE
+const {default: mongoose} = require('mongoose');
+const { CONNECTION_STRING} = require('./constants/dbSettings');
+
+const { passportConfig, passportConfigLocal } = require('./middlewares/passport');
 
 
 const indexRouter = require('./routes/index');
@@ -13,7 +22,8 @@ const categoriesRouter = require('./routes/categories');
 const customersRouter = require('./routes/customers');
 const ordersRouter = require('./routes/orders');
 const suppliersRouter = require('./routes/suppliers');
-const employeesRouter = require('./routes/employees')
+const employeesRouter = require('./routes/employees');
+const questionsRouter = require('./routes/questions');
 
 const app = express();
 
@@ -34,14 +44,23 @@ app.use(
   }),
 );
 
+//MONGOOSE
+mongoose.set('strictQuery', false);
+mongoose.connect(CONNECTION_STRING);
+
+passport.use(passportConfig);
+passport.use(passportConfigLocal);
+
+//REGISTER ROUTERS
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/products', productsRouter);
 app.use('/categories', categoriesRouter);
 app.use('/customers',customersRouter);
 app.use('/orders', ordersRouter);
-app.use('/supplliers', suppliersRouter)
+app.use('/suppliers', suppliersRouter)
 app.use('/employees', employeesRouter);
+app.use('/questions', questionsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

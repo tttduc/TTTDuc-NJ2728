@@ -1,114 +1,156 @@
-var express = require('express');
-var router = express.Router();
-let yup = require('yup');
-let data = require('../data/employees.json');
+const passport = require('passport');
+const express = require('express');
 
-const fileName = './data/employees.json';
+const { CONNECTION_STRING } = require('../constants/dbSettings');
+const { default: mongoose } = require('mongoose');
+const { Employee } = require('../models');
+const { validateSchema, loginSchema, categorySchema } = require('../validation/employee');
+const encodeToken = require('../helpers/jwtHelper');
 
-const {write} = require('../helpers/FileHelper');
+// MONGOOSE
+mongoose.set('strictQuery', false);
+mongoose.connect(CONNECTION_STRING);
 
+const router = express.Router();
 
-// Methods: POST / PATCH / GET / DELETE / PUT
-// Get all
+router.post('/login', validateSchema(loginSchema),
+passport.authenticate('local', { session: false }),
+async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const employee = await Employee.findOne({ email });
+
+    if (!employee) return res.status(404).send({ message: 'Not found' });
+
+    const { _id, email: empEmail, firstName, lastName} = employee;
+
+    const token = encodeToken(_id, empEmail, firstName, lastName);
+
+    res.status(200).json({
+      token,
+      payload: employee,
+    });
+  } catch (err) {
+    res.status(401).json({
+      statusCode: 401,
+      message: 'Unauthorized',
+    });
+  }
+});
+
+router.get('/profile',
+  passport.authenticate('jwt', { session: false }),
+  async (req, res, next) => {
+    try {
+      const employee = await Employee.findById(req.user._id);
+
+      if (!employee) return res.status(404).send({ message: 'Not found' });
+
+      res.status(200).json(employee);
+    } catch (err) {
+      res.sendStatus(500);
+    }
+  },
+);
+
+// router.route('/profile').get(passport.authenticate('jwt', { session: false }), async (req, res, next) => {
+//   try {
+//     const employee = await Employee.findById(req.user._id);
+
+//     if (!employee) return res.status(404).send({ message: 'Not found' });
+
+//     res.status(200).json(employee);
+//   } catch (err) {
+//     res.sendStatus(500);
+//   }
+// },);
+
+// GET
 router.get('/', function (req, res, next) {
-    res.send(data);
-  });
-  
-  // router.get('/:id', function (req, res, next) {
-  //   const id = req.params.id;
-  
-  //   let found = data.find((x) => x.id == id);
-  
-  //   if (found) {
-  //     return res.send({ ok: true, result: found });
-  //   }
-  
-  //   return res.sendStatus(410);
-  // });
-  
-  router.get('/:id', function (req, res, next) {
-    // Validate
-    const validationSchema = yup.object().shape({
-      params: yup.object({
-        id: yup.number(),
-      }),
-    });
-  
-    validationSchema
-      .validate({ params: req.params }, { abortEarly: false })
-      .then(() => {
-        const id = req.params.id;
-  
-        let found = data.find((x) => x.id == id);
-  
-        if (found) {
-          return res.send({ ok: true, result: found });
-        }
-  
-        return res.send({ ok: false, message: 'Object not found' });
+  try {
+    Employee.find()
+      .then((result) => {
+        res.send(result);
       })
       .catch((err) => {
-        return res.status(400).json({ type: err.name, errors: err.errors, message: err.message, provider: 'yup' });
+        res.status(400).send({ message: err.message });
       });
-  });
-  
-  // Create new data
-  router.post('/', function (req, res, next) {
-    // Validate
-    const validationSchema = yup.object({
-      body: yup.object({
-        name: yup.string().required(),
-        email: yup.string().email(),
-        description: yup.string(),
-      }),
-    });
-  
-    validationSchema
-      .validate({ body: req.body }, { abortEarly: false })
-      .then(() => {
-        const newItem = req.body;
-  
-        // Get max id
-        let max = 0;
-        data.forEach((item) => {
-          if (max < item.id) {
-            max = item.id;
-          }
-        });
-  
-        newItem.id = max + 1;
-  
-        data.push(newItem);
-  
-        // Write data to file
-        write(fileName, data);
-  
-        res.send({ ok: true, message: 'Created' });
-      })
-      .catch((err) => {
-        return res.status(400).json({ type: err.name, errors: err.errors, provider: 'yup' });
-      });
-  });
-    router.delete('/:id', function (req, res, next) {
-        const id = req.params.id;
-        data = data.filter((x) => x.id != id);
-        write(fileName, data);
-        res.send({ok:true, message: 'Deleted'});
-    });
+  } catch (err) {
+    res.sendStatus(500);
+  }
+});
 
-    router.patch('/:id', function (req, res, next){
-        const id = req.params.id;
-        const patchData = req.body;
-        
-        let found = data.find((x) => x.id == id);
-        
-        if (found) {
-            for (let propertyName in patchData){
-                found[[propertyName] = patchData[propertyName]];
-            }
-        }
-        write(fileName, data);
-        res.send({ok: true, message: 'Updated'})
-    });
+// GET:/id
+router.get('/:id', function (req, res, next) {
+  try {
+    const { id } = req.params;
+    Employee.findById(id)
+      .then((result) => {
+        res.send(result);
+      })
+      .catch((err) => {
+        res.status(400).send({ message: err.message });
+      });
+  } catch (err) {
+    res.sendStatus(500);
+  }
+});
+
+// POST
+router.post('/', function (req, res, next) {
+  try {
+    const data = req.body;
+
+    const newItem = new Employee(data);
+    newItem
+      .save()
+      .then((result) => {
+        res.send(result);
+      })
+      .catch((err) => {
+        console.log(err);
+        res.status(400).send({ message: err.message });
+      });
+  } catch (err) {
+    res.sendStatus(500);
+  }
+});
+
+// PATCH/:id
+router.patch('/:id', function (req, res, next) {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    Employee.findByIdAndUpdate(id, data, {
+      new: true,
+    })
+      .then((result) => {
+        res.send(result);
+      })
+      .catch((err) => {
+        res.status(400).send({ message: err.message });
+      });
+  } catch (error) {
+    res.sendStatus(500);
+  }
+});
+
+// DELETE
+router.delete('/:id', function (req, res, next) {
+  try {
+    const { id } = req.params;
+    Employee.findByIdAndDelete(id)
+      .then((result) => {
+        res.send(result);
+      })
+      .catch((err) => {
+        res.status(400).send({ message: err.message });
+      });
+  } catch (err) {
+    res.sendStatus(500);
+  }
+});
 
 module.exports = router;
