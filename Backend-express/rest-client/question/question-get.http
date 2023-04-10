@@ -16,5 +16,5 @@
 //GET http://localhost:9000/questions/25 HTTP/1.1
 //content-type: application/json
 
-GET http://localhost:9000/questions/25b HTTP/1.1
+GET http://localhost:9000/questions/17 HTTP/1.1
 content-type: application/json

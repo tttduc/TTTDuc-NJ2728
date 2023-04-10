@@ -558,4 +558,62 @@ router.get('/26b', async (req, res, next) => {
   }
 });
 
+//17
+router.get('/17', async (req, res, next) => {
+  try {
+    const response = await Product.find()
+    .populate('category')
+    .populate('supplier')
+     
+    if (!response){
+        res.status(400).send({ message: err.message });
+      }
+    res.send(response); 
+  } catch (err) {
+    res.sendStatus(500);
+  }
+});
+
+//18
+router.get('/18', async (req, res, next) => {
+  try {
+    let response = await Category.aggregate()
+      .lookup({
+        from: 'products',
+        localField: '_id',
+        foreignField: 'categoryId',
+        as: 'products',
+      })
+      .unwind("products")
+      .group({
+        _id: '$_id',
+        name: {$first:'$name'},
+        description: {$first:'$description'},
+        stock: { $sum: '$products.stock' },
+      })
+      if (!response){
+        res.status(400).send({ message: err.message });
+      }
+    res.send(response); 
+  } catch (err) {
+    res.sendStatus(500);
+  }
+});
+
+
+
 module.exports = router;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
