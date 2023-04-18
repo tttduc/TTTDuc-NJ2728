@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { Schema, model } = mongoose;
 const bcrypt = require('bcryptjs');
+
 // Mongoose Datatypes:
 // https://mongoosejs.com/docs/schematypes.html
 
@@ -10,7 +11,6 @@ const bcrypt = require('bcryptjs');
 const employeeSchema = new Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
-  password: { type: String, required: true },
   email: {
     type: String,
     validate: {
@@ -34,20 +34,10 @@ const employeeSchema = new Schema({
       // message: (props) => `{props.value} is not a valid email!`,
     },
   },
+  password: { type: String, require: true},
   address: { type: String, required: true },
   birthday: { type: Date },
 });
-
-// Virtuals
-employeeSchema.virtual('fullName').get(function () {
-  return this.firstName + ' ' + this.lastName;
-});
-
-// Virtuals in console.log()
-employeeSchema.set('toObject', { virtuals: true });
-// Virtuals in JSON
-employeeSchema.set('toJSON', { virtuals: true });
-
 
 employeeSchema.pre('save', async function (next) {
   try {
@@ -71,6 +61,32 @@ employeeSchema.methods.isValidPass = async function(pass) {
   }
 }
 
+// employeeSchema.pre('save', function a(next) {
+//   const user = this;
+
+//   if (!user.isModified('password')) return next();
+
+//   bcrypt.genSalt(10, (err, salt) => {
+//     if (err) return next(err);
+
+//     bcrypt.hash(user.password, salt, (hashErr, hash) => {
+//       if (hashErr) return next(hashErr);
+
+//       user.password = hash;
+//       next();
+//     });
+//   });
+// });
+
+// // Check password from client
+// employeeSchema.methods.comparePassword = function comparePassword(checkPassword) {
+//   return bcrypt.compareSync(checkPassword, this.password);
+// };
+
+// Virtuals
+employeeSchema.virtual('fullName').get(function () {
+  return this.firstName + ' ' + this.lastName;
+});
 
 const Employee = model('Employee', employeeSchema);
 module.exports = Employee;

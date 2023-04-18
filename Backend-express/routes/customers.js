@@ -1,126 +1,195 @@
-var express = require('express');
-var router = express.Router();
-var yup = require('yup');
+const express = require("express");
+const router = express.Router();
+const yup = require("yup");
+const passport = require("passport");
 
-let data = require('../data/customers.json')
+const { Customer } = require("../models/index");
+const ObjectId = require("mongodb").ObjectId;
+const { CONNECTION_STRING } = require("../constants/dbSettings");
+const { default: mongoose } = require("mongoose");
 
-let fileName = './data/customers.json';
+const encodeToken = require("../helpers/customersHelper");
 
-let {write} = require('../helpers/FileHelper');
+mongoose.set("strictQuery", false);
+mongoose.connect(CONNECTION_STRING);
 
-// Methods: POST / PATCH / GET / DELETE / PUT
-// Get all
-router.get('/', function (req, res, next) {
-  res.send(data);
+const {
+  validateSchema,
+  loginCustomerSchema,
+} = require("../validation/employee");
+
+//POST TOKEN LOGIN
+router.post(
+  "/login",
+  validateSchema(loginCustomerSchema),
+  async (req, res, next) => {
+    try {
+      const { email } = req.body;
+      const customer = await Customer.findOne({ email });
+
+      console.log(customer);
+
+      if (!customer) return res.status(404).send("Not found");
+
+      const token = encodeToken(
+        customer._id,
+        customer.firstName,
+        customer.lastName,
+        customer.email
+      );
+      res.send({
+        token,
+        payload: customer,
+      });
+    } catch {
+      res.send("error");
+    }
+  }
+);
+
+//GET TOKEN PROFILE
+router.get(
+  "/profile",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res, next) => {
+    try {
+      console.log("sssss");
+      const customer = await Customer.findById(req.user._id);
+
+      if (!customer) return res.status(404).send({ message: "Not found" });
+
+      res.status(200).json(customer);
+    } catch (err) {
+      res.sendStatus(500);
+    }
+  }
+);
+
+router.get("/", async (req, res, next) => {
+  /*  res.send(data); */
+  try {
+    let results = await Customer.find();
+    res.send(results);
+  } catch (err) {
+    res.sendStatus(500);
+  }
 });
 
-// router.get('/:id', function (req, res, next) {
-//   const id = req.params.id;
-
-//   let found = data.find((x) => x.id == id);
-
-//   if (found) {
-//     return res.send({ ok: true, result: found });
-//   }
-
-//   return res.sendStatus(410);
-// });
-
-router.get('/:id', function (req, res, next) {
+router.get("/:id", async function (req, res, next) {
   // Validate
   const validationSchema = yup.object().shape({
     params: yup.object({
-      id: yup.number(),
+      id: yup
+        .string()
+        .test("Validate ObjectID", "${path} is not valid ObjectID", (value) => {
+          return ObjectId.isValid(value);
+        }),
     }),
   });
 
   validationSchema
     .validate({ params: req.params }, { abortEarly: false })
-    .then(() => {
+    .then(async () => {
       const id = req.params.id;
 
-      let found = data.find((x) => x.id == id);
+      let found = await Customer.findById(id);
 
       if (found) {
         return res.send({ ok: true, result: found });
       }
 
-      return res.send({ ok: false, message: 'Object not found' });
+      return res.send({ ok: false, message: "Object not found" });
     })
     .catch((err) => {
-      return res.status(400).json({ type: err.name, errors: err.errors, message: err.message, provider: 'yup' });
+      return res.status(400).json({
+        type: err.name,
+        errors: err.errors,
+        message: err.message,
+        provider: "yup",
+      });
     });
 });
 
-// Create new data
-router.post('/', function (req, res, next) {
+router.post("/", async function (req, res, next) {
   // Validate
   const validationSchema = yup.object({
     body: yup.object({
-      firstname: yup.string().required(),
-      lastname: yup.string().required(),
-      phonenumber: yup.number().positive().required(),
-      address: yup.string().required(),
+      firstName: yup.string().required(),
+      lastName: yup.string(),
+      phoneNumber: yup.string(),
+      address: yup.string(),
       email: yup.string().email(),
+      birthday: yup.date(),
     }),
   });
 
   validationSchema
     .validate({ body: req.body }, { abortEarly: false })
-    .then(() => {
-      const newItem = req.body;
+    .then(async () => {
+      try {
+        const data = req.body;
+        const newItem = new Customer(data);
+        let result = await newItem.save();
 
-      // Get max id
-      let max = 0;
-      data.forEach((item) => {
-        if (max < item.id) {
-          max = item.id;
-        }
-      });
-
-      newItem.id = max + 1;
-
-      data.push(newItem);
-
-      // Write data to file
-      write(fileName, data);
-
-      res.send({ ok: true, message: 'Created' });
+        return res.send({ ok: true, message: "Created", result });
+      } catch (err) {
+        return res.status(500).json({ error: err });
+      }
     })
     .catch((err) => {
-      return res.status(400).json({ type: err.name, errors: err.errors, provider: 'yup' });
+      return res
+        .status(400)
+        .json({ type: err.name, errors: err.errors, provider: "yup" });
     });
 });
 
-// Delete data
 router.delete("/:id", function (req, res, next) {
-  const id = req.params.id;
-  data = data.filter((x) => x.id != id);
-  write(fileName, data);
-  res.send({ ok: true, message: "Deleted" });
+  const validationSchema = yup.object().shape({
+    params: yup.object({
+      id: yup
+        .string()
+        .test("Validate ObjectID", "${path} is not valid ObjectID", (value) => {
+          return ObjectId.isValid(value);
+        }),
+    }),
+  });
+
+  validationSchema
+    .validate({ params: req.params }, { abortEarly: false })
+    .then(async () => {
+      try {
+        const id = req.params.id;
+
+        let found = await Customer.findByIdAndDelete(id);
+
+        if (found) {
+          return res.send({ ok: true, result: found });
+        }
+
+        return res.status(410).send({ ok: false, message: "Object not found" });
+      } catch (err) {
+        return res.status(500).json({ error: err });
+      }
+    })
+    .catch((err) => {
+      return res.status(400).json({
+        type: err.name,
+        errors: err.errors,
+        message: err.message,
+        provider: "yup",
+      });
+    });
 });
 
-router.patch("/:id", function (req, res, next) {
-  const id = req.params.id;
-  const patchData = req.body;
+router.patch("/:id", async function (req, res, next) {
+  try {
+    const id = req.params.id;
+    const patchData = req.body;
+    await Customer.findByIdAndUpdate(id, patchData);
 
-  let found = data.find((x) => x.id == id);
-
-  if (found) {
-    for (let propertyName in patchData) {
-      found[propertyName] = patchData[propertyName];
-    }
+    res.send({ ok: true, message: "Updated" });
+  } catch (error) {
+    res.status(500).send({ ok: false, error });
   }
-  write(fileName, data);
-  res.send({ ok: true, message: "Updated" });
 });
-
-router.get("/search", function (req, res, next) {
-  res.send("This is search router of products");
-});
-
-router.get("/details", function (req, res, next) {
-  res.send("This is details router of products");
-});
-
 module.exports = router;

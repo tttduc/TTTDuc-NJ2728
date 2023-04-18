@@ -1,11 +1,11 @@
-const js = require('fs');
+const fs = require('fs');
 
-//Save data to file
-function write(file, data) {
-    js.writeFileSync(file, JSON.stringify(data), function(err){
-        if (err) throw err;
-        console.log('Saved!');
-    });
+// Save data to file
+function write(fileName, data) {
+  fs.writeFileSync(fileName, JSON.stringify(data), function (err) {
+    if (err) throw err;
+    console.log('Saved!');
+  });
 }
 
-module.exports = {write};
+module.exports = { write };

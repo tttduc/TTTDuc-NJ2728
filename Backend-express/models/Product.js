@@ -14,6 +14,7 @@ const productSchema = Schema(
     price: { type: Number, required: true, min: 0, default: 0 },
     discount: { type: Number, min: 0, max: 75, default: 0 },
     stock: { type: Number, min: 0, default: 0 },
+    description: { type: String, required: true },
     categoryId: { type: Schema.Types.ObjectId, ref: 'Category', required: false },
     supplierId: { type: Schema.Types.ObjectId, ref: 'Supplier', required: false },
   },
@@ -49,7 +50,7 @@ productSchema.set('toObject', { virtuals: true });
 // Virtuals in JSON
 productSchema.set('toJSON', { virtuals: true });
 
-// productSchema.plugin(mongooseLeanVirtuals);
+productSchema.plugin(mongooseLeanVirtuals);
 
 const Product = model('Product', productSchema);
 module.exports = Product;
