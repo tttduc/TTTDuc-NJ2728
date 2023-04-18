@@ -1,118 +1,126 @@
-import React from 'react'
-import axios from 'axios';
-import { Button, Form, Input, Table, message, Space, Modal } from 'antd';
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { Button, Form, message, Space, Modal, Input, Table } from "antd";
+import axios from "../../libraries/axiosClient";
+import React from "react";
+import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType } from "antd/es/table";
 
+const apiName = "/categories";
 
-type Props = {}
-
-const API_URL = 'http://localhost:9000/categories'
-
-export default function Categories({ }: Props) {
-
+export default function Categories() {
   const [categories, setCategories] = React.useState<any[]>([]);
   const [refresh, setRefresh] = React.useState<number>(0);
-  const [open, setOpen] = React.useState<boolean>(false)
+  const [open, setOpen] = React.useState<boolean>(false);
   const [updateId, setUpdateId] = React.useState<number>(0);
 
-  const [createForm] = Form.useForm();
   const [updateForm] = Form.useForm();
 
   const columns: ColumnsType<any> = [
     {
-      title: 'Id',
-      dataIndex: 'id',
-      key: 'id',
-      width: '1%',
-      align: 'right',
-    },
-    {
-      title: 'Tên danh mục',
-      dataIndex: 'name',
-      key: 'name',
+      title: "Id",
+      dataIndex: "id",
+      key: "id",
+      width: "1%",
+      align: "right",
       render: (text, record, index) => {
-        return (<strong style={{ color: 'Blue' }}>{text}</strong>)
-      }
+        return <span>{index + 1}</span>;
+      },
     },
     {
-      title: 'Mô tả/ Ghi chú',
-      dataIndex: 'description',
-      key: 'description',
+      title: "Tên danh mục",
+      dataIndex: "name",
+      key: "name",
+      render: (text, record, index) => {
+        return <strong style={{ color: "#6c5ce7" }}>{text}</strong>;
+      },
     },
     {
-      title: '',
-      dataIndex: 'actions',
-      key: 'actions',
-      width: '1%',
+      title: "Mô tả / Ghi chú",
+      dataIndex: "description",
+      key: "description",
+    },
+
+    {
+      title: "",
+      dataIndex: "actions",
+      key: "actions",
+      width: "1%",
       render: (text, record, index) => {
         return (
           <Space>
-
-            <Button icon={<EditOutlined />} onClick={() => {
-              setOpen(true);
-              setUpdateId(record.id);
-              updateForm.setFieldsValue(record);
-            }} />
-
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => {
+                setOpen(true);
+                setUpdateId(record._id);
+                updateForm.setFieldsValue(record);
+              }}
+            />
             <Button
               danger
-              icon={<DeleteOutlined />} onClick={() => {
-                console.log(record.id);
-                axios.delete(API_URL + '/' + record.id).then(response => {
+              icon={<DeleteOutlined />}
+              onClick={() => {
+                axios.delete(apiName + "/" + record._id).then((response) => {
                   setRefresh((f) => f + 1);
-                  message.success('Xóa thành công!', 1)
-                })
-              }} />
 
+                  message.success("Xóa danh mục thành công", 1.5);
+                });
+              }}
+            />
           </Space>
         );
-      }
+      },
     },
   ];
 
-
-  //call api to get data
+  // Call api to get data
   React.useEffect(() => {
-    axios.get(API_URL).then((response) => {
-      const { data } = response;
-      setCategories(data);
-      console.log(data);
-    }).catch(err => {
-      console.error(err);
-    });
-  }, [refresh])
+    axios
+      .get(apiName)
+      .then((response) => {
+        const { data } = response;
+        setCategories(data);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }, [refresh]);
 
+  const onUpdateFinish = (values: any) => {
+    // console.log(values);
+    // console.log(updateId);
 
-  const onFinish = (value: any) => {
-    console.log(value);
-    axios.post(API_URL, value).then((response => {
-      setRefresh((f) => f + 1);
-      createForm.resetFields();
-
-      message.success('Thêm mới thành công!', 1)
-    })).catch((err => { }))
-  };
-
-  const onUpdateFinish = (value: any) => {
-    console.log(value);
-    axios.patch(API_URL + '/' + updateId, value).then((response => {
-      setRefresh((f) => f + 1);
-      updateForm.resetFields();
-
-      message.success('Cập nhật thành công!', 1);
-      setOpen(false);
-    })).catch((err => { }))
+    axios
+      .patch(apiName + "/" + updateId, values)
+      .then((response) => {
+        setRefresh((f) => f + 1);
+        updateForm.resetFields();
+        message.success("Cập nhật danh mục thành công!", 1.5);
+        setOpen(false);
+      })
+      .catch((err) => {});
   };
 
   return (
-    <div>
-      <div>
+    <div style={{ padding: 24 }}>
+      {/* TABLE */}
+      <Table rowKey="id" dataSource={categories} columns={columns} />
+      <Modal
+        open={open}
+        title="Cập nhật danh mục"
+        onCancel={() => {
+          setOpen(false);
+        }}
+        cancelText="Đóng"
+        okText="Lưu thông tin"
+        onOk={() => {
+          updateForm.submit();
+        }}
+      >
         <Form
-          form={createForm}
-          name='create-form'
-          onFinish={onFinish}
+          form={updateForm}
+          name="update-form"
+          onFinish={onUpdateFinish}
           labelCol={{
             span: 8,
           }}
@@ -121,78 +129,25 @@ export default function Categories({ }: Props) {
           }}
         >
           <Form.Item
-            label='Tên danh mục'
-            name='name'
+            label="Tên danh mục"
+            name="name"
             hasFeedback
-            required={true} rules={[
+            required={true}
+            rules={[
               {
                 required: true,
-                message: 'Bắt buộc phải có tên danh mục',
-              }
-            ]}>
-            <Input />
-          </Form.Item>
-
-          <Form.Item label='Mô tả/ Ghi chú' name='description'>
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            wrapperCol={{
-              offset: 8,
-              span: 16,
-            }}
+                message: "Tên danh mục bắt buộc phải nhập",
+              },
+            ]}
           >
-            <Button type="primary" htmlType="submit">
-              Lưu thông tin
-            </Button>
+            <Input />
+          </Form.Item>
+
+          <Form.Item label="Mô tả / Ghi chú" name="description">
+            <Input />
           </Form.Item>
         </Form>
-      </div>
-      <div>
-        <Table rowKey='id' dataSource={categories} columns={columns} pagination={false} />
-      
-      {/* Edit Form*/}
-      <Modal open={open} title="Cập nhật danh mục"
-            onCancel={()=> {setOpen(false);}}
-
-            cancelText = 'Đóng'
-            okText = 'Lưu thông tin'
-            onOk={()=> {
-                updateForm.submit();
-            }}
-            >
-            <Form
-                    form={updateForm}
-                    name='update-form'
-                    onFinish={onUpdateFinish}
-                    labelCol={{
-                        span: 8,
-                    }}
-                    wrapperCol={{
-                        span: 16,
-                    }}
-                >
-                    <Form.Item
-            label='Tên danh mục'
-            name='name'
-            hasFeedback
-            required={true} rules={[
-              {
-                required: true,
-                message: 'Bắt buộc phải có tên danh mục',
-              }
-            ]}>
-            <Input />
-          </Form.Item>
-
-          <Form.Item label='Mô tả/ Ghi chú' name='description'>
-            <Input />
-          </Form.Item>
-
-                </Form>
-            </Modal>
-      </div>
+      </Modal>
     </div>
-  )
+  );
 }

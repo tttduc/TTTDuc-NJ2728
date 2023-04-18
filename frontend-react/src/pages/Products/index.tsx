@@ -1,236 +1,340 @@
-import React from 'react'
-import axios from 'axios';
-import { Button, Form, Input, Table, message, Space, Modal } from 'antd';
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 
-import type { ColumnsType } from 'antd/es/table';
+import { Button, Form, Input, InputNumber, message, Modal, Select, Space, Table } from "antd";
+import axios from "../../libraries/axiosClient";
+import React, { useCallback } from "react";
 
+import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 
-type Props = {}
+import type { ColumnsType } from "antd/es/table";
+import numeral from "numeral";
 
-const API_URL = 'http://localhost:9000/products'
+const apiName = "/products";
 
-export default function Products({ }: Props) {
+export default function ProductList() {
+    const [items, setItems] = React.useState<any[]>([]);
+    const [categories, setCategories] = React.useState<any[]>([]);
+    const [suppliers, setSupplier] = React.useState<any[]>([]);
 
-  const [products, setProducts] = React.useState<any[]>([]);
-  const [refresh, setRefresh] = React.useState<number>(0);
-  const [updateId, setUpdateId] = React.useState<number>(0);
-  const [open, setOpen] = React.useState<boolean>(false)
+    const [refresh, setRefresh] = React.useState<number>(0);
+    const [open, setOpen] = React.useState<boolean>(false);
+    const [updateId, setUpdateId] = React.useState<number>(0);
 
-  const [createForm] = Form.useForm();
-  const [updateForm] = Form.useForm();
+    const [product, setProduct] = React.useState<any[]>();
 
-  const columns: ColumnsType<any> = [
-    {
-      title: 'Id',
-      dataIndex: 'id',
-      key: 'id',
-      width: '1%',
-      align: 'right',
-    },
-    {
-      title: 'Tên danh mục',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text, record, index) => {
-        return (<strong style={{ color: 'Blue' }}>{text}</strong>)
-      }
-    },
-    {
-      title: 'Giá',
-      dataIndex: 'price',
-      key: 'price',
-    },
-    {
-      title: 'Giảm giá',
-      dataIndex: 'discount',
-      key: 'discount',
-    },
-    {
-      title: 'Cổ phần',
-      dataIndex: 'stock',
-      key: 'stock',
-    },
-    {
-      title: 'Mô tả/ Ghi chú',
-      dataIndex: 'description',
-      key: 'description',
-    },
-    {
-      title: '',
-      dataIndex: 'actions',
-      key: 'actions',
-      width: '1%',
-      render: (text, record, index) => {
-        return (
-          <Space>
+    const [updateForm] = Form.useForm();
 
-            <Button icon={<EditOutlined />} onClick={() => {
-              setOpen(true);
-              setUpdateId(record.id);
-              updateForm.setFieldsValue(record);
-            }} />
+    const onSelectProductFilter = useCallback((e: any) => {
+        setProduct(e.target.value);
+    }, []);
 
-            <Button
-              danger
-              icon={<DeleteOutlined />} onClick={() => {
-                console.log(record.id);
-                axios.delete(API_URL + '/' + record.id).then(response => {
-                  setRefresh((f) => f + 1);
-                  message.success('Xóa thành công!', 1)
-                })
-              }} />
+    const callApi = useCallback((searchParams: any) => {
+        axios
+            .get(`${apiName}${`?${searchParams.toString()}`}`)
+            .then((response) => {
+                const { data } = response;
+                setItems(data);
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+    }, []);
 
-          </Space>
-        );
-      }
-    },
-  ];
+    const onSearch = useCallback(() => {
+        let filters: { product: any } = {
+            product,
+        };
+
+        const searchParams: URLSearchParams = new URLSearchParams(filters);
+
+        callApi(searchParams);
+    }, [callApi, product]);
 
 
-  //call api to get data
-  React.useEffect(() => {
-    axios.get(API_URL).then((response) => {
-      const { data } = response;
-      setProducts(data);
-      console.log(data);
-    }).catch(err => {
-      console.error(err);
-    });
-  }, [refresh])
+    const columns: ColumnsType<any> = [
+        {
+            title: "Id",
+            dataIndex: "id",
+            key: "id",
+            width: "1%",
+            align: "right",
+            render: (text, record, index) => {
+                return <span>{index + 1}</span>;
+            },
+        },
+        {
+            title: "Tên danh mục",
+            dataIndex: "category.name",
+            key: "category.name",
+            render: (text, record, index) => {
+                console.log("record", record);
+                // console.log('index',index)
+                // console.log('record.category.name',record.category.name)
+                return <span>{record?.category?.name}</span>;
+            },
+        },
+        {
+            title: "Nhà cung cấp",
+            dataIndex: "supplier.name",
+            key: "supplier.name",
+            render: (text, record, index) => {
+                return <span>{record?.supplier?.name}</span>;
+            },
+        },
+        {
+            title: "Tên sản phẩm",
+            dataIndex: "name",
+            key: "name",
+            render: (text, record, index) => {
+                return <strong>{text}</strong>;
+            },
+        },
+        {
+            title: "Giá bán",
+            dataIndex: "price",
+            key: "price",
+            width: "1%",
+            align: "right",
+            render: (text, record, index) => {
+                return <span>{numeral(text).format("0,0")}</span>;
+            },
+        },
+        {
+            title: "Giảm",
+            dataIndex: "discount",
+            key: "discount",
+            width: "1%",
+            align: "right",
+            render: (text, record, index) => {
+                return <span>{numeral(text).format("0,0")}%</span>;
+            },
+        },
+        {
+            title: () => {
+                return <div style={{ whiteSpace: "nowrap" }}>Tồn kho</div>;
+            },
+            dataIndex: "stock",
+            key: "stock",
+            width: "1%",
+            align: "right",
+            render: (text, record, index) => {
+                return <span>{numeral(text).format("0,0")}</span>;
+            },
+        },
+        {
+            title: "",
+            dataIndex: "actions",
+            key: "actions",
+            width: "1%",
+            render: (text, record, index) => {
+                return (
+                    <Space>
+                        <Button
+                            icon={<EditOutlined />}
+                            onClick={() => {
+                                setOpen(true);
+                                setUpdateId(record._id);
+                                updateForm.setFieldsValue(record);
+                            }}
+                        />
+                        <Button
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => {
+                                console.log(record.id);
+                                axios.delete(apiName + "/" + record._id).then((response) => {
+                                    setRefresh((f) => f + 1);
+                                    message.success("Xóa danh mục thành công!", 1.5);
+                                });
+                            }}
+                        />
+                    </Space>
+                );
+            },
+        },
+    ];
+
+    // Get products
+    React.useEffect(() => {
+        axios
+            .get(apiName)
+            .then((response) => {
+                const { data } = response;
+                setItems(data);
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+    }, [refresh]);
+
+    // Get categories
+    React.useEffect(() => {
+        axios
+            .get("/categories")
+            .then((response) => {
+                const { data } = response;
+                setCategories(data);
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+    }, [refresh]);
+
+    // Get suppliers
+    React.useEffect(() => {
+        axios
+            .get("/suppliers")
+            .then((response) => {
+                const { data } = response;
+                setSupplier(data);
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+    }, [refresh]);
+
+    const onUpdateFinish = (values: any) => {
+        axios
+            .patch(apiName + "/" + updateId, values)
+            .then((response) => {
+                setRefresh((f) => f + 1);
+                updateForm.resetFields();
+                message.success("Cập nhật thành công!", 1.5);
+                setOpen(false);
+            })
+            .catch((err) => { });
+    };
+
+    return (
+        <div style={{ padding: 24 }}>
+            <div>
+                <select id="cars" onChange={onSelectProductFilter}>
+                    {items.map((item: { _id: string; name: string }) => {
+                        return (
+                            <option key={item._id} value={item.name}>
+                                {item.name}
+                            </option>
+                        );
+                    })}
+                </select>
+
+                <button onClick={onSearch}> TÌM KIẾM</button>
+            </div>
 
 
-  const onFinish = (value: any) => {
-    console.log(value);
-    axios.post(API_URL, value).then((response => {
-      setRefresh((f) => f + 1);
-      createForm.resetFields();
+            <Table
+                rowKey={"_id"}
+                dataSource={items}
+                columns={columns}
+            />
 
-      message.success('Thêm mới thành công!', 1)
-    })).catch((err => { }))
-  };
+            {/* EDIT FORM */}
 
-  const onUpdateFinish = (value: any) => {
-    console.log(value);
-    axios.patch(API_URL + '/' + updateId, value).then((response => {
-      setRefresh((f) => f + 1);
-      updateForm.resetFields();
+            <Modal
+                open={open}
+                title="Cập nhật danh mục"
+                onCancel={() => {
+                    setOpen(false);
+                }}
+                cancelText="Đóng"
+                okText="Lưu thông tin"
+                onOk={() => {
+                    updateForm.submit();
+                }}
+            >
+                <Form
+                    form={updateForm}
+                    name="update-form"
+                    onFinish={onUpdateFinish}
+                    labelCol={{
+                        span: 8,
+                    }}
+                    wrapperCol={{
+                        span: 16,
+                    }}
+                >
+                    <Form.Item
+                        label="Danh mục sản phẩm"
+                        name="categoryId"
+                        hasFeedback
+                        required={true}
+                        rules={[
+                            {
+                                required: true,
+                                message: "Danh mục sản phẩm bắt buộc phải chọn",
+                            },
+                        ]}
+                    >
+                        <Select
+                            style={{ width: "100%" }}
+                            options={categories.map((c) => {
+                                return { value: c._id, label: c.name };
+                            })}
+                        />
+                    </Form.Item>
 
-      message.success('Cập nhật thành công!', 1);
-      setOpen(false);
-    })).catch((err => { }))
-  };
+                    <Form.Item
+                        label="Nhà cung cấp"
+                        name="supplierId"
+                        hasFeedback
+                        required={true}
+                        rules={[
+                            {
+                                required: true,
+                                message: "Nhà cung cấp bắt buộc phải chọn",
+                            },
+                        ]}
+                    >
+                        <Select
+                            style={{ width: "100%" }}
+                            options={suppliers.map((c) => {
+                                return { value: c._id, label: c.name };
+                            })}
+                        />
+                    </Form.Item>
 
-  return (
-    <div>
-      <div>
-        <Form
-          form={createForm}
-          name='create-form'
-          onFinish={onFinish}
-          labelCol={{
-            span: 8,
-          }}
-          wrapperCol={{
-            span: 16,
-          }}
-        >
-          <Form.Item
-            label='Tên danh mục'
-            name='name'
-            hasFeedback
-            required={true} rules={[
-              {
-                required: true,
-                message: 'Bắt buộc phải có tên danh mục',
-              }
-            ]}>
-            <Input />
-          </Form.Item>
+                    <Form.Item
+                        label="Tên sản phẩm"
+                        name="name"
+                        hasFeedback
+                        required={true}
+                        rules={[
+                            {
+                                required: true,
+                                message: "Tên sản phẩm bắt buộc phải nhập",
+                            },
+                        ]}
+                    >
+                        <Input />
+                    </Form.Item>
 
-          <Form.Item label='Giá' name='price'>
-            <Input />
-          </Form.Item>
+                    <Form.Item
+                        label="Giá bán"
+                        name="price"
+                        hasFeedback
+                        required={true}
+                        rules={[
+                            {
+                                required: true,
+                                message: "Giá bán bắt buộc phải nhập",
+                            },
+                        ]}
+                    >
+                        <InputNumber style={{ width: 200 }} />
+                    </Form.Item>
 
-          <Form.Item label='Giảm giá' name='discount'>
-            <Input />
-          </Form.Item>
+                    <Form.Item label="Giảm giá" name="discount" hasFeedback>
+                        <InputNumber style={{ width: 200 }} />
+                    </Form.Item>
 
-          <Form.Item label='Cổ phần' name='stock'>
-            <Input />
-          </Form.Item>
+                    <Form.Item label="Tồn kho" name="stock" hasFeedback>
+                        <InputNumber style={{ width: 200 }} />
+                    </Form.Item>
 
-          <Form.Item label='Mô tả/ Ghi chú' name='description'>
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            wrapperCol={{
-              offset: 8,
-              span: 16,
-            }}
-          >
-            <Button type="primary" htmlType="submit">
-              Lưu thông tin
-            </Button>
-          </Form.Item>
-        </Form>
-      </div>
-      <div>
-        <Table rowKey='id' dataSource={products} columns={columns} pagination={false} />
-        {/* Edit Form*/}
-        <Modal open={open} title="Cập nhật danh mục"
-          onCancel={() => { setOpen(false); }}
-
-          cancelText='Đóng'
-          okText='Lưu thông tin'
-          onOk={() => {
-            updateForm.submit();
-          }}
-        >
-          <Form
-            form={updateForm}
-            name='update-form'
-            onFinish={onUpdateFinish}
-            labelCol={{
-              span: 8,
-            }}
-            wrapperCol={{
-              span: 16,
-            }}
-          >
-            <Form.Item
-              label='Tên danh mục'
-              name='name'
-              hasFeedback
-              required={true} rules={[
-                {
-                  required: true,
-                  message: 'Bắt buộc phải có tên danh mục',
-                }
-              ]}>
-              <Input />
-            </Form.Item>
-
-            <Form.Item label='Giá' name='price'>
-              <Input />
-            </Form.Item>
-
-            <Form.Item label='Giảm giá' name='discount'>
-              <Input />
-            </Form.Item>
-
-            <Form.Item label='Cổ phần' name='stock'>
-              <Input />
-            </Form.Item>
-
-            <Form.Item label='Mô tả/ Ghi chú' name='description'>
-              <Input />
-            </Form.Item>
-
-          </Form>
-        </Modal>
-      </div>
-    </div>
-  )
+                    {/* <Form.Item label="Mô tả / Ghi chú" name="description" hasFeedback>
+              <InputNumber style={{ width: 200 }} />
+            </Form.Item> */}
+                </Form>
+            </Modal>
+        </div>
+    );
 }
