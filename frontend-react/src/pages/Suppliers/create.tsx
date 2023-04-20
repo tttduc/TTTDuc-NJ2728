@@ -1,29 +1,32 @@
-import {
-    Button,
-    Form,
-    Input,
-    message,
-    Modal,
-    Pagination,
-    Space,
-    Table,
-  } from "antd";
-  import axios from "../../libraries/axiosClient";
 import React from "react";
- 
- const apiName = "/suppliers";
+import { Button, Form, Input, message } from "antd";
+import axios from "../../libraries/axiosClient";
+import { useNavigate } from "react-router-dom";
 
- export default function Suppliers() {
- 
-    const [refresh, setRefresh] = React.useState<number>(0);
-    const [createForm] = Form.useForm();
- 
- 
- 
- 
- 
- 
- const onFinish = (values: any) => {
+const apiName = "/suppliers";
+
+export default function Suppliers() {
+  const [suppliers, setSuppliers] = React.useState<any[]>([]);
+  const [refresh, setRefresh] = React.useState<number>(0);
+  const navigate = useNavigate();
+
+  const [createForm] = Form.useForm();
+
+  React.useEffect(() => {
+    // Call api
+    axios
+      .get(apiName)
+      .then((response) => {
+        const { data } = response;
+        setSuppliers(data);
+        console.log(data);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }, [refresh]);
+
+  const onFinish = (values: any) => {
     console.log(values);
 
     axios
@@ -31,60 +34,66 @@ import React from "react";
       .then((response) => {
         setRefresh((f) => f + 1);
         createForm.resetFields();
-        message.success("Thêm mới danh mục thành công!", 1.5);
+        message.success("Thêm mới nhà cung cấp thành công!", 1.5);
+        navigate("/suppliers")
       })
       .catch((err) => {});
   };
- 
- 
- {/* CREAT FORM */}
- <Form
- form={createForm}
- name="create-form"
- onFinish={onFinish}
- labelCol={{
-   span: 8,
- }}
- wrapperCol={{
-   span: 16,
- }}
->
- <Form.Item
-   label="Name"
-   name="name"
-   hasFeedback
-   required={true}
-   rules={[
-     {
-       required: true,
-       message: "Tên bắt buộc phải nhập",
-     },
-   ]}
- >
-   <Input />
- </Form.Item>
 
- <Form.Item label="Phone Number" name="phoneNumber" hasFeedback>
-   <Input />
- </Form.Item>
-
- <Form.Item label="Address" name="address" hasFeedback>
-   <Input />
- </Form.Item>
-
- <Form.Item label="Email" name="email" hasFeedback>
-   <Input />
- </Form.Item>
-
- <Form.Item
-   wrapperCol={{
-     offset: 8,
-     span: 16,
-   }}
- >
-   <Button type="primary" htmlType="submit">
-     Lưu thông tin
-   </Button>
- </Form.Item>
-</Form>
- }
+  return (
+    <div style={{ padding: 24 }}>
+      <div>
+        {/* CREATE FORM */}
+        <Form
+          form={createForm}
+          name="Create-form"
+          onFinish={onFinish}
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+        >
+          <Form.Item
+            label="Tên"
+            name="name"
+            hasFeedback
+            required={true}
+            rules={[{ required: true, message: "Bạn chưa nhập tên" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Email"
+            name="email"
+            hasFeedback
+            required={true}
+            rules={[{ required: true, message: "Bạn chưa nhập email" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Số Điện Thoại"
+            name="phoneNumber"
+            hasFeedback
+            required={true}
+            rules={[{ required: true, message: "Bạn chưa nhập số điện thoại" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Địa Chỉ"
+            name="address"
+            hasFeedback
+            required={true}
+            rules={[{ required: true, message: "Bạn chưa nhập địa chỉ" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
+            <Button type="primary" htmlType="submit">
+              Submit
+            </Button>
+          </Form.Item>
+        </Form>
+      </div>
+    </div>
+  );
+}

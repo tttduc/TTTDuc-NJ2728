@@ -1,16 +1,16 @@
 import { Button, Form, Input, InputNumber, message, Select } from "antd";
 import axios from "../../libraries/axiosClient";
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const apiName = "/products";
 
-export default function Categories() {
+export default function Products() {
   const [items, setItems] = React.useState<any[]>([]);
-  const [categories, setCategories] = React.useState<any[]>([]);
+  const [products, setProducts] = React.useState<any[]>([]);
   const [suppliers, setSupplier] = React.useState<any[]>([]);
-  
-
   const [refresh, setRefresh] = React.useState<number>(0);
+  const navigate = useNavigate();
 
   const [createForm] = Form.useForm();
 
@@ -21,7 +21,6 @@ export default function Categories() {
       .then((response) => {
         const { data } = response;
         setItems(data);
-        console.log(data);
       })
       .catch((err) => {
         console.error(err);
@@ -34,7 +33,7 @@ export default function Categories() {
       .get("/categories")
       .then((response) => {
         const { data } = response;
-        setCategories(data);
+        setProducts(data);
       })
       .catch((err) => {
         console.error(err);
@@ -62,8 +61,8 @@ export default function Categories() {
       .then((response) => {
         setRefresh((f) => f + 1);
         createForm.resetFields();
-        message.success("Thêm mới danh mục thành công!", 1.5);
-        window.location.href = "/products";
+        message.success("Thêm mới sản phẩm thành công!", 1.5);
+        navigate("/products")
       })
       .catch((err) => {});
   };
@@ -97,7 +96,7 @@ export default function Categories() {
           >
             <Select
               style={{ width: "100%" }}
-              options={categories.map((c) => {
+              options={products.map((c) => {
                 return { value: c._id, label: c.name };
               })}
             />
@@ -159,10 +158,6 @@ export default function Categories() {
           <Form.Item label="Tồn kho" name="stock" hasFeedback>
             <InputNumber style={{ width: 200 }} />
           </Form.Item>
-
-          {/* <Form.Item label="Mô tả / Ghi chú" name="description" hasFeedback>
-            <InputNumber style={{ width: 200 }} />
-          </Form.Item> */}
 
           <Form.Item
             wrapperCol={{
